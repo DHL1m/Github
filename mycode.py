@@ -221,7 +221,7 @@ model = MLPNet()
 if use_cuda:
     model = model.to(device)
 # optimizer = optim.Adam(model.parameters(), lr=0.001)
-optimizer = optim.SGD(model.parameters(), lr=0.75, momentum=0.75)
+optimizer = optim.SGD(model.parameters(), momentum=0.9, lr=0.25)
 optim.SGD.step = step3
 criterion = nn.CrossEntropyLoss()
 
