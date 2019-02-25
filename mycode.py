@@ -32,72 +32,16 @@ def step3(self, closure=None):
             if weight_decay != 0:
                 d_p.add_(weight_decay, p.data)
 
-            # if momentum != 0:
-            #     param_state = self.state[p]
-            #     if 'momentum_buffer' not in param_state:
-            #         buf = param_state['momentum_buffer'] = torch.zeros_like(p.data)
-            #         buf.mul_(momentum).add_(d_p)
-            #     else:
-            #         buf = param_state['momentum_buffer']
-            #         # buf.mul_(momentum).add_(1 - dampening, d_p)
-            #         # buf.mul_(momentum).add_(1 - dampening, group['lr'] * d_p)
-            #         buf.mul_(momentum).add_(1 - dampening, d_p)
-            #         # buf.mul_(momentum).add_(1 - dampening, d_p*torch.pow(c*0.1,0.5)/group['lr'])
-            #         # buf.mul_(momentum).add_(1 - dampening, d_p)
-            #         # buf.mul_(momentum.mul_(a*b)).add_(1 - dampening, group['lr']*d_p)
-            #
-            #     if nesterov:
-            #         d_p = d_p.add(momentum, buf)
-            #     else:
-            #         d_p = buf
-
-
             if momentum != 0:
                 param_state = self.state[p]
                 if 'momentum_buffer' not in param_state:
                     buf = param_state['momentum_buffer'] = torch.zeros_like(p.data)
                     buf.mul_(momentum).add_(d_p)
-                    ccc = param_state['count'] = torch.zeros_like(p.data)
-                    ccc.add_(0)
-                    c = param_state['drift'] = torch.zeros_like(p.data)
-                    c.add_(0)
-                    #     c.add_(1.0)
-                    # ccc.add_(1)
-                    # print(ccc)
-                    # print(d_p.size())
-                    # print(np.sum(buf.numpy()))
                 else:
                     buf = param_state['momentum_buffer']
-                    ccc = param_state['count']
-                    c = param_state['drift']
-
-                    # print(ccc)
-                    # print(np.size(buf.numpy()))
-                    # print(torch.sign(d_p))
-                    # print(np.sum(d_p.numpy()))
-                    ccc.mul_(0)
-                    ccc[(torch.sign(d_p) > 0) & (torch.sign(buf) > 0)] = 1
-                    c.add_(ccc)
-                    ccc.mul_(0)
-                    ccc[(torch.sign(d_p) < 0) & (torch.sign(buf) < 0)] = -1
-                    c.add_(ccc)
-                    ccc.mul_(0)
-                    ccc.add_(1)
-                    ccc[(torch.sign(d_p)*torch.sign(buf)) !=1 ] = 0
-                    c.mul_(ccc)
-                    ccc.mul_(0)
-                    ccc.add_(torch.sign(c)*((torch.pow(torch.abs(c),0.1))-1))
-                    # print(torch.sign(d_p))
-                    # c.mul_(ccc)
-                    # torch.set_printoptions(edgeitems=15,precision=10)
-                    # print(ccc)
-                    # ccc.mul_(torch.sign(torch.abs(buf) - torch.abs(d_p)).add_(1).mul_(0.5))
-                    # print(torch.pow(c+1,0.001))
                     # buf.mul_(momentum).add_(1 - dampening, d_p)
                     # buf.mul_(momentum).add_(1 - dampening, group['lr'] * d_p)
-                    # buf.mul_(momentum*ccc).add_(1 - dampening, d_p)
-                    buf.mul_(momentum).add_(1 - dampening, d_p+d_p*ccc)
-                    # buf.mul_(momentum * (torch.pow(ccc.mul_(0.0001), 0.01) + 1.0)).add_(1 - dampening, d_p)
+                    buf.mul_(momentum).add_(1 - dampening, d_p)
                     # buf.mul_(momentum).add_(1 - dampening, d_p*torch.pow(c*0.1,0.5)/group['lr'])
                     # buf.mul_(momentum).add_(1 - dampening, d_p)
                     # buf.mul_(momentum.mul_(a*b)).add_(1 - dampening, group['lr']*d_p)
@@ -106,6 +50,62 @@ def step3(self, closure=None):
                     d_p = d_p.add(momentum, buf)
                 else:
                     d_p = buf
+
+
+            # if momentum != 0:
+            #     param_state = self.state[p]
+            #     if 'momentum_buffer' not in param_state:
+            #         buf = param_state['momentum_buffer'] = torch.zeros_like(p.data)
+            #         buf.mul_(momentum).add_(d_p)
+            #         ccc = param_state['count'] = torch.zeros_like(p.data)
+            #         ccc.add_(0)
+            #         c = param_state['drift'] = torch.zeros_like(p.data)
+            #         c.add_(0)
+            #         #     c.add_(1.0)
+            #         # ccc.add_(1)
+            #         # print(ccc)
+            #         # print(d_p.size())
+            #         # print(np.sum(buf.numpy()))
+            #     else:
+            #         buf = param_state['momentum_buffer']
+            #         ccc = param_state['count']
+            #         c = param_state['drift']
+            #
+            #         # print(ccc)
+            #         # print(np.size(buf.numpy()))
+            #         # print(torch.sign(d_p))
+            #         # print(np.sum(d_p.numpy()))
+            #         ccc.mul_(0)
+            #         ccc[(torch.sign(d_p) > 0) & (torch.sign(buf) > 0)] = 1
+            #         c.add_(ccc)
+            #         ccc.mul_(0)
+            #         ccc[(torch.sign(d_p) < 0) & (torch.sign(buf) < 0)] = -1
+            #         c.add_(ccc)
+            #         ccc.mul_(0)
+            #         ccc.add_(1)
+            #         ccc[(torch.sign(d_p)*torch.sign(buf)) !=1 ] = 0
+            #         c.mul_(ccc)
+            #         ccc.mul_(0)
+            #         ccc.add_(torch.sign(c)*((torch.pow(torch.abs(c),0.08))-1))
+            #         # print(torch.sign(d_p))
+            #         # c.mul_(ccc)
+            #         # torch.set_printoptions(edgeitems=15,precision=10)
+            #         # print(ccc)
+            #         # ccc.mul_(torch.sign(torch.abs(buf) - torch.abs(d_p)).add_(1).mul_(0.5))
+            #         # print(torch.pow(c+1,0.001))
+            #         # buf.mul_(momentum).add_(1 - dampening, d_p)
+            #         # buf.mul_(momentum).add_(1 - dampening, group['lr'] * d_p)
+            #         # buf.mul_(momentum*ccc).add_(1 - dampening, d_p)
+            #         buf.mul_(momentum).add_(1 - dampening, d_p+d_p*ccc)
+            #         # buf.mul_(momentum * (torch.pow(ccc.mul_(0.0001), 0.01) + 1.0)).add_(1 - dampening, d_p)
+            #         # buf.mul_(momentum).add_(1 - dampening, d_p*torch.pow(c*0.1,0.5)/group['lr'])
+            #         # buf.mul_(momentum).add_(1 - dampening, d_p)
+            #         # buf.mul_(momentum.mul_(a*b)).add_(1 - dampening, group['lr']*d_p)
+            #
+            #     if nesterov:
+            #         d_p = d_p.add(momentum, buf)
+            #     else:
+            #         d_p = buf
 
 
             # param_state = self.state[p]
