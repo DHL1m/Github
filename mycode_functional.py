@@ -32,65 +32,16 @@ def step3(self, closure=None):
             if weight_decay != 0:
                 d_p.add_(weight_decay, p.data)
 
-            # if momentum != 0:
-            #     param_state = self.state[p]
-            #     if 'momentum_buffer' not in param_state:
-            #         buf = param_state['momentum_buffer'] = torch.zeros_like(p.data)
-            #         buf.mul_(momentum).add_(d_p)
-            #     else:
-            #         buf = param_state['momentum_buffer']
-            #         # buf.mul_(momentum).add_(1 - dampening, d_p)
-            #         # buf.mul_(momentum).add_(1 - dampening, group['lr'] * d_p)
-            #         buf.mul_(momentum).add_(1 - dampening, d_p)
-            #         # buf.mul_(momentum).add_(1 - dampening, d_p*torch.pow(c*0.1,0.5)/group['lr'])
-            #         # buf.mul_(momentum).add_(1 - dampening, d_p)
-            #         # buf.mul_(momentum.mul_(a*b)).add_(1 - dampening, group['lr']*d_p)
-            #
-            #     if nesterov:
-            #         d_p = d_p.add(momentum, buf)
-            #     else:
-            #         d_p = buf
-
-
             if momentum != 0:
                 param_state = self.state[p]
                 if 'momentum_buffer' not in param_state:
                     buf = param_state['momentum_buffer'] = torch.zeros_like(p.data)
                     buf.mul_(momentum).add_(d_p)
-                    ccc = param_state['count'] = torch.zeros_like(p.data)
-                    ccc.add_(1)
-                    c = param_state['drift'] = torch.zeros_like(p.data)
-                    c.add_(1)
-                    #     c.add_(1.0)
-                    # ccc.add_(1)
-                    # print(ccc)
-                    # print(d_p.size())
-                    # print(np.sum(buf.numpy()))
                 else:
                     buf = param_state['momentum_buffer']
-                    ccc = param_state['count']
-                    c = param_state['drift']
-                    ccc.mul_(0)
-                    # print(ccc)
-                    # print(np.size(buf.numpy()))
-                    # print(torch.sign(d_p))
-                    # print(np.sum(d_p.numpy()))
-                    ccc.add_((torch.sign(d_p) * torch.sign(buf)))
-                    ccc[ccc!=1]=0
-                    c.add_(ccc)
-                    c.mul_(ccc)
-
-                    # print(torch.sign(d_p))
-                    # c.mul_(ccc)
-                    # torch.set_printoptions(edgeitems=15,precision=10)
-                    # print(c+1)
-                    # ccc.mul_(torch.sign(torch.abs(buf) - torch.abs(d_p)).add_(1).mul_(0.5))
-                    # print(torch.pow(c,0.1))
                     # buf.mul_(momentum).add_(1 - dampening, d_p)
                     # buf.mul_(momentum).add_(1 - dampening, group['lr'] * d_p)
-                    # buf.mul_(momentum*ccc).add_(1 - dampening, d_p)
-                    buf.mul_(momentum).add_(1 - dampening, d_p*torch.pow(c+1,0.02))
-                    # buf.mul_(momentum * (torch.pow(ccc.mul_(0.0001), 0.01) + 1.0)).add_(1 - dampening, d_p)
+                    buf.mul_(momentum).add_(1 - dampening, d_p)
                     # buf.mul_(momentum).add_(1 - dampening, d_p*torch.pow(c*0.1,0.5)/group['lr'])
                     # buf.mul_(momentum).add_(1 - dampening, d_p)
                     # buf.mul_(momentum.mul_(a*b)).add_(1 - dampening, group['lr']*d_p)
@@ -99,6 +50,52 @@ def step3(self, closure=None):
                     d_p = d_p.add(momentum, buf)
                 else:
                     d_p = buf
+
+
+            # if momentum != 0:
+            #     param_state = self.state[p]
+            #     if 'momentum_buffer' not in param_state:
+            #         buf = param_state['momentum_buffer'] = torch.zeros_like(p.data)
+            #         buf.mul_(momentum).add_(d_p)
+            #         # ccc = param_state['count'] = torch.zeros_like(p.data)
+            #         # ccc.add_(1)
+            #         # c = param_state['drift'] = torch.zeros_like(p.data)
+            #         # c.add_(1)
+            #         #
+            #         #     c.add_(1.0)
+            #         # ccc.add_(1)
+            #         # print(ccc)
+            #         # print(d_p.size())
+            #         # print(np.sum(buf.numpy()))
+            #     else:
+            #         buf = param_state['momentum_buffer']
+            #         # ccc = param_state['count']
+            #         # c = param_state['drift']
+            #         # ccc.mul_(0)
+            #         # ccc.add_((torch.sign(d_p) * torch.sign(buf)))
+            #         # ccc[ccc!=1]=0
+            #         # c.add_(ccc)
+            #         # c.mul_(ccc)
+            #
+            #         # print(torch.sign(d_p))
+            #         # c.mul_(ccc)
+            #         # torch.set_printoptions(edgeitems=15,precision=10)
+            #         # print(c+1)
+            #         # ccc.mul_(torch.sign(torch.abs(buf) - torch.abs(d_p)).add_(1).mul_(0.5))
+            #         # print(torch.pow(c,0.1))
+            #         buf.mul_(momentum).add_(1 - dampening, d_p)
+            #         # buf.mul_(momentum).add_(1 - dampening, group['lr'] * d_p)
+            #         # buf.mul_(momentum*ccc).add_(1 - dampening, d_p)
+            #         # buf.mul_(momentum).add_(1 - dampening, d_p*torch.pow(c+1,0.0))
+            #         # buf.mul_(momentum * (torch.pow(ccc.mul_(0.0001), 0.01) + 1.0)).add_(1 - dampening, d_p)
+            #         # buf.mul_(momentum).add_(1 - dampening, d_p*torch.pow(c*0.1,0.5)/group['lr'])
+            #         # buf.mul_(momentum).add_(1 - dampening, d_p)
+            #         # buf.mul_(momentum.mul_(a*b)).add_(1 - dampening, group['lr']*d_p)
+            #
+            #     if nesterov:
+            #         d_p = d_p.add(momentum, buf)
+            #     else:
+            #         d_p = buf
 
 
             # param_state = self.state[p]
@@ -233,8 +230,8 @@ model = MLPNet()
 if use_cuda:
     model = model.to(device)
 # optimizer = optim.Adam(model.parameters(), lr=0.001)
-optimizer = optim.SGD(model.parameters(), momentum=0.8, lr=0.75)
-optim.SGD.step = step3
+optimizer = optim.SGD(model.parameters(), momentum=0.75, lr=1)
+# optim.SGD.step = step3
 criterion = nn.CrossEntropyLoss()
 
 for epoch in range(50):
