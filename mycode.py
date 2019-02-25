@@ -89,7 +89,7 @@ def step3(self, closure=None):
                     # buf.mul_(momentum).add_(1 - dampening, d_p)
                     # buf.mul_(momentum).add_(1 - dampening, group['lr'] * d_p)
                     # buf.mul_(momentum*ccc).add_(1 - dampening, d_p)
-                    buf.mul_(momentum).add_(1 - dampening, d_p*torch.pow(c+1,0.01))
+                    buf.mul_(momentum).add_(1 - dampening, d_p*torch.pow(c+1,0.02))
                     # buf.mul_(momentum * (torch.pow(ccc.mul_(0.0001), 0.01) + 1.0)).add_(1 - dampening, d_p)
                     # buf.mul_(momentum).add_(1 - dampening, d_p*torch.pow(c*0.1,0.5)/group['lr'])
                     # buf.mul_(momentum).add_(1 - dampening, d_p)
