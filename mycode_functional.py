@@ -1,3 +1,4 @@
+# Import ##################################################################################
 from __future__ import print_function
 import os
 import torch
@@ -7,8 +8,11 @@ import torchvision.datasets as dset
 import torchvision.transforms as transforms
 import torch.nn.functional as F
 import torch.optim as optim
+import easydict
 import numpy as np
 
+
+# Monkey Patching #########################################################################
 def step3(self, closure=None):
     """Performs a single optimization step.
     Arguments:
@@ -85,11 +89,11 @@ def step3(self, closure=None):
                     # torch.set_printoptions(edgeitems=15,precision=10)
                     # print(c+1)
                     # ccc.mul_(torch.sign(torch.abs(buf) - torch.abs(d_p)).add_(1).mul_(0.5))
-                    # print(torch.pow(c,0.1))
+                    # print(torch.pow(c+1,0.3))
                     # buf.mul_(momentum).add_(1 - dampening, d_p)
                     # buf.mul_(momentum).add_(1 - dampening, group['lr'] * d_p)
                     # buf.mul_(momentum*ccc).add_(1 - dampening, d_p)
-                    buf.mul_(momentum).add_(1 - dampening, d_p*torch.pow(c+1,0.02))
+                    buf.mul_(momentum).add_(1 - dampening, d_p*torch.pow(c+1,1))
                     # buf.mul_(momentum * (torch.pow(ccc.mul_(0.0001), 0.01) + 1.0)).add_(1 - dampening, d_p)
                     # buf.mul_(momentum).add_(1 - dampening, d_p*torch.pow(c*0.1,0.5)/group['lr'])
                     # buf.mul_(momentum).add_(1 - dampening, d_p)
@@ -148,31 +152,7 @@ def step3(self, closure=None):
 
     return loss
 
-## load mnist dataset
-use_cuda = torch.cuda.is_available()
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
-root = './data'
-if not os.path.exists(root):
-    os.mkdir(root)
-trans = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.0,), (1.0,))])
-
-# if not exist, download mnist dataset
-train_set = dset.MNIST(root=root, train=True, transform=trans, download=True)
-test_set = dset.MNIST(root=root, train=False, transform=trans, download=True)
-batch_size = 100
-train_loader = torch.utils.data.DataLoader(
-    dataset=train_set,
-    batch_size=batch_size,
-    shuffle=True)
-test_loader = torch.utils.data.DataLoader(
-    dataset=test_set,
-    batch_size=batch_size,
-    shuffle=False)
-print('==>>> total trainning batch number: {}'.format(len(train_loader)))
-print('==>>> total testing batch number: {}'.format(len(test_loader)))
-
-## network
+# Network #################################################################################
 class MLPNet(nn.Module):
     def __init__(self):
         super(MLPNet, self).__init__()
@@ -223,23 +203,27 @@ class LeNet(nn.Module):
     def name(self):
         return "LeNet"
 
-## training
-torch.manual_seed(0)
-model = MLPNet()
-# for a in model.parameters():
-#     print(a)
-#     print(a.size())
+# Load Dataset ############################################################################
+use_cuda = torch.cuda.is_available()
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-if use_cuda:
-    model = model.to(device)
-# optimizer = optim.Adam(model.parameters(), lr=0.001)
-optimizer = optim.SGD(model.parameters(), momentum=0.8, lr=0.75)
-optim.SGD.step = step3
-criterion = nn.CrossEntropyLoss()
+root = './data'
+if not os.path.exists(root):
+    os.mkdir(root)
+trans = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.0,), (1.0,))])
 
-for epoch in range(50):
-    # training
-    ave_loss = 0
+train_set = dset.MNIST(root=root, train=True, transform=trans, download=True)
+test_set = dset.MNIST(root=root, train=False, transform=trans, download=True)
+batch_size = 100
+train_loader = torch.utils.data.DataLoader(dataset=train_set, batch_size=batch_size, shuffle=True)
+test_loader = torch.utils.data.DataLoader(dataset=test_set, batch_size=batch_size, shuffle=False)
+print('==>>> total training batch number: {}'.format(len(train_loader)))
+print('==>>> total testing batch number: {}'.format(len(test_loader)))
+
+# Training ###################################################################################
+def train(args, model, device, train_loader, criterion, optimizer, epoch):
+    model.train()
+    train_loss = 0
     for batch_idx, (x, target) in enumerate(train_loader):
         optimizer.zero_grad()
         if use_cuda:
@@ -250,27 +234,62 @@ for epoch in range(50):
         #         ave_loss = ave_loss * 0.9 + loss.data[0] * 0.1
         loss.backward()
         optimizer.step()
-        ave_loss += loss.item()
-        if (batch_idx + 1) % 100 == 0 or (batch_idx + 1) == len(train_loader):
-            print('==>>> epoch: {}, batch index: {}, train loss: {:.6f}'.format(
-                epoch, batch_idx + 1, ave_loss / 100))
-            ave_loss = 0.0
-    # testing
-    correct_cnt, ave_loss = 0, 0
-    total_cnt = 0
+        train_loss += loss.item()/args.train_batch_size
+
+        if (batch_idx + 1) % args.log_interval == 0 or (batch_idx + 1) == len(train_loader):
+            print('Train Epoch: {} [{}/{} ({:.0f}%)]\t Train Loss: {:.6f}'.format(
+                epoch, batch_idx * len(x), len(train_loader.dataset),
+                       100. * (batch_idx + 1)/ len(train_loader), train_loss))
+            train_loss = 0.0
+        # if (batch_idx + 1) % 100 == 0 or (batch_idx + 1) == len(train_loader):
+        #     print('==>>> epoch: {}, batch index: {}, train loss: {:.6f}'.format(
+        #         epoch, batch_idx + 1, ave_loss / 100))
+        #     ave_loss = 0.0
+
+# Testing ####################################################################################
+def test(args, model, device, criterion, test_loader):
+    model.eval()
+    correct_cnt, test_loss = 0, 0
+    # total_cnt = 0
     with torch.no_grad():
         for batch_idx, (x, target) in enumerate(test_loader):
             if use_cuda:
-                x, target = x.cuda(), target.cuda()
+                x, target = x.to(device), target.to(device)
             #         x, target = Variable(x, volatile=True), Variable(target, volatile=True)
             out = model(x)
             loss = criterion(out, target)
+            test_loss += loss.item()/args.test_batch_size
             _, pred_label = torch.max(out.data, 1)
-            total_cnt += target.size(0)
+            # total_cnt += target.size(0)
             correct_cnt += (pred_label == target).sum().item()
+
             # smooth average
             #         ave_loss = ave_loss * 0.9 + loss.data[0] * 0.1
-            if (batch_idx + 1) % 100 == 0 or (batch_idx + 1) == len(test_loader):
-                print('==>>> epoch: {}, batch index: {}, test loss: {:.6f}, acc: {:.3f}'.format(
-                    epoch, batch_idx + 1, loss, correct_cnt * 1.0 / total_cnt))
-    # torch.save(model.state_dict(), model.name())
+            if (batch_idx + 1) % args.log_interval == 0 or (batch_idx + 1) == len(test_loader):
+                print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
+                    test_loss, correct_cnt, len(test_loader.dataset),
+                    100. * correct_cnt / len(test_loader.dataset)))
+
+                # print('==>>> epoch: {}, batch index: {}, test loss: {:.6f}, acc: {:.3f}'.format(
+                #     epoch, batch_idx + 1, loss, correct_cnt * 1.0 / total_cnt))
+
+model = MLPNet()
+# for a in model.parameters():
+#     print(a)
+#     print(a.size())
+args=easydict.EasyDict({'train_batch_size':100, 'test_batch_size':1000, 'epochs':50, 'momentum':0.25, 'lr':0.25, 'no_cuda':False, 'seed':0, 'log_interval':100, 'save_model':False})
+torch.manual_seed(args.seed)
+if use_cuda:
+    model = model.to(device)
+# optimizer = optim.Adam(model.parameters(), lr=0.001)
+optimizer = optim.SGD(params=model.parameters(), momentum=args.momentum, lr=args.lr)
+optim.SGD.step = step3
+criterion = nn.CrossEntropyLoss()
+
+print('\n===> Training starts')
+for epoch in range(1, args.epochs + 1):
+    train(args, model, device, train_loader, criterion, optimizer, epoch)
+    test(args, model, device, criterion, test_loader)
+
+if (args.save_model):
+    torch.save(model.state_dict(),"mnist_cnn.pt")
