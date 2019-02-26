@@ -32,24 +32,24 @@ def step3(self, closure=None):
             if weight_decay != 0:
                 d_p.add_(weight_decay, p.data)
 
-            if momentum != 0:
-                param_state = self.state[p]
-                if 'momentum_buffer' not in param_state:
-                    buf = param_state['momentum_buffer'] = torch.zeros_like(p.data)
-                    buf.mul_(momentum).add_(d_p)
-                else:
-                    buf = param_state['momentum_buffer']
-                    # buf.mul_(momentum).add_(1 - dampening, d_p)
-                    # buf.mul_(momentum).add_(1 - dampening, group['lr'] * d_p)
-                    buf.mul_(momentum).add_(1 - dampening, d_p)
-                    # buf.mul_(momentum).add_(1 - dampening, d_p*torch.pow(c*0.1,0.5)/group['lr'])
-                    # buf.mul_(momentum).add_(1 - dampening, d_p)
-                    # buf.mul_(momentum.mul_(a*b)).add_(1 - dampening, group['lr']*d_p)
-
-                if nesterov:
-                    d_p = d_p.add(momentum, buf)
-                else:
-                    d_p = buf
+            # if momentum != 0:
+            #     param_state = self.state[p]
+            #     if 'momentum_buffer' not in param_state:
+            #         buf = param_state['momentum_buffer'] = torch.zeros_like(p.data)
+            #         buf.mul_(momentum).add_(d_p)
+            #     else:
+            #         buf = param_state['momentum_buffer']
+            #         # buf.mul_(momentum).add_(1 - dampening, d_p)
+            #         # buf.mul_(momentum).add_(1 - dampening, group['lr'] * d_p)
+            #         buf.mul_(momentum).add_(1 - dampening, d_p)
+            #         # buf.mul_(momentum).add_(1 - dampening, d_p*torch.pow(c*0.1,0.5)/group['lr'])
+            #         # buf.mul_(momentum).add_(1 - dampening, d_p)
+            #         # buf.mul_(momentum.mul_(a*b)).add_(1 - dampening, group['lr']*d_p)
+            #
+            #     if nesterov:
+            #         d_p = d_p.add(momentum, buf)
+            #     else:
+            #         d_p = buf
 
 
             # if momentum != 0:
@@ -90,13 +90,13 @@ def step3(self, closure=None):
             #         # print(torch.sign(d_p))
             #         # c.mul_(ccc)
             #         # torch.set_printoptions(edgeitems=15,precision=10)
-            #         # print(ccc)
+            #         print(ccc)
             #         # ccc.mul_(torch.sign(torch.abs(buf) - torch.abs(d_p)).add_(1).mul_(0.5))
             #         # print(torch.pow(c+1,0.001))
             #         # buf.mul_(momentum).add_(1 - dampening, d_p)
             #         # buf.mul_(momentum).add_(1 - dampening, group['lr'] * d_p)
             #         # buf.mul_(momentum*ccc).add_(1 - dampening, d_p)
-            #         buf.mul_(momentum).add_(1 - dampening, d_p+d_p*ccc)
+            #         buf.mul_(momentum).add_(1 - dampening, d_p + d_p * ccc)
             #         # buf.mul_(momentum * (torch.pow(ccc.mul_(0.0001), 0.01) + 1.0)).add_(1 - dampening, d_p)
             #         # buf.mul_(momentum).add_(1 - dampening, d_p*torch.pow(c*0.1,0.5)/group['lr'])
             #         # buf.mul_(momentum).add_(1 - dampening, d_p)
@@ -108,46 +108,46 @@ def step3(self, closure=None):
             #         d_p = buf
 
 
-            # param_state = self.state[p]
-            # if 'drift_buffer' not in param_state:
-            #     buf = param_state['drift_buffer'] = torch.zeros_like(p.data)
-            #     buf.add_(d_p)
-            #     c = param_state['drift'] = torch.zeros_like(p.data)
-            #     c.add_(1.0)
-            #     ccc = param_state['count'] = torch.zeros_like(p.data)
-            #     ccc.mul_(0)
-            # else:
-            #     buf = param_state['drift_buffer']
-            #     c = param_state['drift']
-            #     ccc = param_state['count']
-            #     c.mul_(0.0).add_(1.0)
-            #     ccc+=1
-            #     # print(ccc)
-            #
-            #     # print(c)
-            #     ccc.mul_((torch.sign(d_p)*torch.sign(buf)).add_(1).mul_(0.5))
-            #     ccc.mul_(torch.sign(torch.abs(buf)-torch.abs(d_p)).add_(1).mul_(0.5))
-            #     # ccc.mul_((torch.sign(d_p) * torch.sign(buf)).add_(1).mul_(0.5))
-            #     # print(ccc)
-            #     # a = buf.clone()
-            #     # b = d_p.clone()
-            #     # d = d_p.clone()
-            #     # d.mul_(0)
-            #     # a[a < 0] = 1
-            #     # a[a != 1] = -1
-            #     # b[b < 0] = 1
-            #     # b[b != 1] = -1
-            #     # d.add_(a*b)
-            #     # d[d==-1]=0
-            #     # c.mul_(d)
-            #     # c[c==0]=100
-            #     # c.mul_(torch.pow(ccc.add_(1), 0.005))
-            #     # print(c)
-            #
-            #     # c.add_(500.0)
-            #     # c.mul_(a * b).add_(a * b).add_(1.0).pow_(0.2)
-            #     c.mul_(ccc.add_(1.0))
-            #     # print(c)
+            param_state = self.state[p]
+            if 'drift_buffer' not in param_state:
+                buf = param_state['drift_buffer'] = torch.zeros_like(p.data)
+                buf.add_(d_p)
+                c = param_state['drift'] = torch.zeros_like(p.data)
+                c.add_(1.0)
+                ccc = param_state['count'] = torch.zeros_like(p.data)
+                ccc.mul_(0)
+            else:
+                buf = param_state['drift_buffer']
+                c = param_state['drift']
+                ccc = param_state['count']
+                c.mul_(0.0).add_(1.0)
+                ccc+=1
+                print(ccc)
+
+                # print(c)
+                # ccc.mul_((torch.sign(d_p)*torch.sign(buf)).add_(1).mul_(0.5))
+                # ccc.mul_(torch.sign(torch.abs(buf)-torch.abs(d_p)).add_(1).mul_(0.5))
+                # ccc.mul_((torch.sign(d_p) * torch.sign(buf)).add_(1).mul_(0.5))
+                # print(ccc)
+                # a = buf.clone()
+                # b = d_p.clone()
+                # d = d_p.clone()
+                # d.mul_(0)
+                # a[a < 0] = 1
+                # a[a != 1] = -1
+                # b[b < 0] = 1
+                # b[b != 1] = -1
+                # d.add_(a*b)
+                # d[d==-1]=0
+                # c.mul_(d)
+                # c[c==0]=100
+                # c.mul_(torch.pow(ccc.add_(1), 0.005))
+                # print(c)
+
+                # c.add_(500.0)
+                # c.mul_(a * b).add_(a * b).add_(1.0).pow_(0.2)
+                # c.mul_(ccc.add_(1.0))
+                # print(c)
             #
             # p.data.add_(-group['lr'], d_p * c)
             p.data.add_(-group['lr'], d_p)
@@ -240,7 +240,7 @@ model = MLPNet()
 if use_cuda:
     model = model.to(device)
 # optimizer = optim.Adam(model.parameters(), lr=0.001)
-optimizer = optim.SGD(model.parameters(), momentum=0.8, lr=0.75)
+optimizer = optim.SGD(model.parameters(), momentum=0., lr=0.1)
 optim.SGD.step = step3
 criterion = nn.CrossEntropyLoss()
 
