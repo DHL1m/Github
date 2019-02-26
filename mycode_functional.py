@@ -10,6 +10,8 @@ import torch.nn.functional as F
 import torch.optim as optim
 import easydict
 import numpy as np
+from logger import Logger
+
 torch.manual_seed(0)
 
 # Monkey Patching #########################################################################
